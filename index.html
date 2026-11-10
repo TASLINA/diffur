@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Диффур — решатель дифференциальных уравнений</title>
+  <meta name="description" content="Символьное и численное решение дифференциальных уравнений в браузере: SymPy, SciPy, графики, поле направлений, фазовый портрет." />
+  <meta name="color-scheme" content="dark light" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%237c9cff'/%3E%3Ctext x='32' y='46' font-size='40' text-anchor='middle' fill='%23070b14' font-family='Georgia,serif'%3E%E2%88%AB%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.19.1/dist/katex.min.css" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjs@14.9.1/lib/browser/math.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.19.1/dist/katex.min.js"></script>
+  <script type="module" src="assets/app.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+    <span class="grid-glow"></span>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="./" title="На главную">
+      <span class="brand-mark" aria-hidden="true">∫</span>
+      <span class="brand-text">
+        <strong>диффур</strong>
+        <small>решатель дифференциальных уравнений</small>
+      </span>
+    </a>
+    <div class="topbar-right">
+      <button class="engine-badge" id="engineBadge" type="button" data-state="idle" title="Загрузить SymPy и SciPy заранее">
+        <span class="engine-dot" aria-hidden="true"></span>
+        <span id="engineText">движок не загружен</span>
+      </button>
+      <button class="icon-btn" id="themeToggle" type="button" aria-label="Переключить тему" title="Переключить тему">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="panel panel-input" aria-labelledby="inputTitle">
+      <header class="panel-head">
+        <div>
+          <h2 id="inputTitle">Постановка задачи</h2>
+          <p class="panel-sub">Уравнение, начальные условия, интервал</p>
+        </div>
+        <span class="kbd-hint" aria-hidden="true"><kbd>Ctrl</kbd><kbd>↵</kbd></span>
+      </header>
+
+      <form id="problemForm" novalidate>
+        <div class="field">
+          <div class="field-head">
+            <label for="equationInput">Уравнение</label>
+            <span class="order-badge" id="orderBadge">1-й порядок</span>
+          </div>
+          <div class="equation-wrap" id="equationWrap">
+            <span class="equation-prompt" aria-hidden="true">ƒ</span>
+            <input
+              id="equationInput"
+              class="equation-input"
+              type="text"
+              value="y' = x - y"
+              spellcheck="false"
+              autocomplete="off"
+              autocapitalize="off"
+              aria-describedby="equationHelp equationError"
+            />
+          </div>
+          <div class="math-preview" id="equationPreview" aria-hidden="true"></div>
+          <p class="field-help" id="equationHelp">
+            Поддерживаются <code>y′</code>, <code>y″</code>, <code>dy/dx</code> и неявная запись.
+            Умножение: <code>2x</code>, <code>2*x</code>.
+          </p>
+          <p class="field-error" id="equationError" hidden></p>
+        </div>
+
+        <div class="field-group">
+          <span class="group-label">Начальные условия</span>
+          <div class="num-grid">
+            <label class="num-field">
+              <span>x₀</span>
+              <input id="x0" type="text" inputmode="decimal" autocomplete="off" value="0" />
+            </label>
+            <label class="num-field">
+              <span>y(x₀)</span>
+              <input id="y0" type="text" inputmode="decimal" autocomplete="off" value="1" />
+            </label>
+            <label class="num-field" id="dy0Field" hidden>
+              <span>y′(x₀)</span>
+              <input id="dy0" type="text" inputmode="decimal" autocomplete="off" value="0" />
+            </label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <span class="group-label">Интервал и метод</span>
+          <div class="num-grid">
+            <label class="num-field">
+              <span>до x =</span>
+              <input id="xEnd" type="text" inputmode="decimal" autocomplete="off" value="12" />
+            </label>
+            <label class="num-field">
+              <span>численный метод</span>
+              <select id="method">
+                <option value="auto">авто</option>
+                <option value="RK45">RK45</option>
+                <option value="DOP853">DOP853</option>
+                <option value="Radau">Radau</option>
+                <option value="BDF">BDF</option>
+                <option value="LSODA">LSODA</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="solveBtn">
+            <span class="btn-icon" aria-hidden="true">▶</span>
+            <span id="solveBtnText">Решить</span>
+          </button>
+          <button type="button" class="btn btn-ghost" id="shareBtn" title="Скопировать ссылку на задачу">Ссылка</button>
+        </div>
+        <p class="submit-note">Первый запуск скачивает SymPy и SciPy (~30 МБ). Дальше всё берётся из кеша браузера.</p>
+      </form>
+
+      <div class="divider"></div>
+
+      <section class="examples" aria-labelledby="examplesTitle">
+        <div class="section-head">
+          <h3 id="examplesTitle">Примеры</h3>
+          <span>нажмите, чтобы подставить</span>
+        </div>
+        <div class="example-grid" id="exampleGrid"></div>
+      </section>
+
+      <section class="history" id="historySection" hidden aria-labelledby="historyTitle">
+        <div class="section-head">
+          <h3 id="historyTitle">История</h3>
+          <button type="button" class="link-btn" id="clearHistory">Очистить</button>
+        </div>
+        <div class="history-list" id="historyList"></div>
+      </section>
+    </section>
+
+    <section class="panel panel-result" aria-labelledby="resultTitle" aria-live="polite">
+      <header class="panel-head panel-head-result">
+        <div>
+          <h2 id="resultTitle">Решение</h2>
+          <p class="panel-sub" id="resultSub">Формула, график и проверка подстановкой</p>
+        </div>
+      </header>
+
+      <div class="result-empty" id="resultEmpty">
+        <div class="empty-mark" aria-hidden="true">∫</div>
+        <h3>Готово к вычислениям</h3>
+        <p>
+          Введите уравнение слева или выберите пример. Приложение найдёт точное
+          решение, если оно существует, и построит численное.
+        </p>
+        <ul class="empty-list">
+          <li><span>≈</span> символьное решение через SymPy</li>
+          <li><span>∫</span> численное интегрирование SciPy</li>
+          <li><span>↗</span> поле направлений и фазовый портрет</li>
+        </ul>
+      </div>
+
+      <div class="result-loading" id="resultLoading" hidden>
+        <div class="loader" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p class="loading-title" id="loadingMessage">Загружаю математический движок…</p>
+        <div class="progress" aria-hidden="true"><div class="progress-bar"></div></div>
+        <p class="loading-note">Первый запуск может занять до минуты: браузер скачивает Python-движок.</p>
+      </div>
+
+      <div class="result-error" id="resultError" hidden>
+        <div class="error-icon" aria-hidden="true">!</div>
+        <h3 id="errorTitle">Не удалось решить</h3>
+        <p id="errorMessage"></p>
+        <pre id="errorDetail" hidden></pre>
+      </div>
+
+      <div class="result-body" id="resultBody" hidden>
+        <div class="status-row" id="statusRow"></div>
+
+        <div class="warning-banner" id="warningBanner" hidden>
+          <span class="warning-icon" aria-hidden="true">!</span>
+          <div class="warning-content">
+            <strong id="warningTitle"></strong>
+            <p id="warningText"></p>
+            <button type="button" class="link-btn" id="retryEngine" hidden>Повторить загрузку движка</button>
+          </div>
+        </div>
+
+        <article class="card" id="symbolicCard">
+          <header class="card-head">
+            <h3>Точное решение</h3>
+            <div class="card-actions">
+              <span class="verify-badge" id="verifyBadge" hidden></span>
+              <button type="button" class="chip-btn" id="copyLatexBtn" title="Скопировать в LaTeX">LaTeX</button>
+            </div>
+          </header>
+          <div class="tex-block" id="symbolicTex"></div>
+          <div class="chip-list" id="classificationChips"></div>
+          <p class="card-note" id="symbolicNote"></p>
+        </article>
+
+        <article class="card" id="numericCard">
+          <header class="card-head">
+            <h3>Численное решение</h3>
+            <span class="method-tag" id="numericMethod"></span>
+          </header>
+          <div class="stats" id="numericStats"></div>
+          <p class="card-note" id="numericNote"></p>
+        </article>
+
+        <article class="card card-plot" id="plotCard">
+          <header class="card-head card-head-plot">
+            <h3 id="plotTitle">График решения</h3>
+            <div class="plot-actions">
+              <div class="segmented" id="plotModeSwitch" hidden>
+                <button type="button" data-mode="solution" class="is-active">y(x)</button>
+                <button type="button" data-mode="phase">фаза</button>
+              </div>
+              <label class="switch" id="fieldToggleWrap">
+                <input type="checkbox" id="fieldToggle" checked />
+                <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+                <span class="switch-label">поле</span>
+              </label>
+              <button type="button" class="chip-btn" id="resetViewBtn" title="Сбросить масштаб">Сброс</button>
+              <button type="button" class="chip-btn" id="exportSvgBtn" title="Скачать график в SVG">SVG</button>
+              <button type="button" class="chip-btn" id="exportCsvBtn" title="Скачать данные в CSV">CSV</button>
+            </div>
+          </header>
+          <div class="plot" id="plot"></div>
+          <p class="plot-hint">Колесо — масштаб, перетаскивание — сдвиг, двойной клик — сброс</p>
+        </article>
+
+        <details class="card card-steps" id="stepsCard">
+          <summary>Как решалось</summary>
+          <ol class="steps-list" id="stepsList"></ol>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>SymPy + SciPy через Pyodide · KaTeX · math.js</span>
+    <span class="footer-sep" aria-hidden="true"></span>
+    <span>Вычисления идут в браузере, данные никуда не отправляются</span>
+  </footer>
+</body>
+</html>
